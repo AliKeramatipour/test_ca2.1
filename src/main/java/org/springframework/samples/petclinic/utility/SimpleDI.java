@@ -10,9 +10,13 @@ import java.util.concurrent.Callable;
  */
 public abstract class SimpleDI {
 
-	public static SimpleDI getDIContainer() throws Exception {
-		// todo return the singleton instance of your implementation of dependency injection container
-		throw new Exception("not implemented");
+	private static MyDI DIContainer = null;
+	static SimpleDI getDIContainer() {
+		if (DIContainer == null){
+			DIContainer = new MyDI();
+			return DIContainer;
+		}
+		return DIContainer;
 	}
 
 	public abstract void provideByInstance(Class<?> typeClass, Object instanceOfType);
