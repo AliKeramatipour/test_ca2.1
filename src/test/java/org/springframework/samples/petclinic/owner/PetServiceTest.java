@@ -6,7 +6,6 @@ import org.mockito.*;
 import org.slf4j.Logger;
 import org.springframework.samples.petclinic.utility.PetTimedCache;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,7 +60,7 @@ class PetServiceTest {
 			fail("null input was accepted in newPet");
 		}catch (Exception e) {
 			//No value should be returned since Exception is caught mid-function
-			assertEquals(returnValue, null);
+			assertEquals(null, returnValue);
 		}
 	}
 
@@ -122,7 +121,7 @@ class PetServiceTest {
 		}catch (Exception e) {
 			fail("testFindOwnerValidInputState failed");
 		}
-		assertEquals(returnValue, owner);
+		assertEquals(owner, returnValue);
 	}
 
 	@Test
@@ -159,7 +158,7 @@ class PetServiceTest {
 		realOwner.removePet(returnValue);
 		assertEquals(0, realOwner.getPets().size());
 		assertNotNull(returnValue);
-		assertEquals(returnValue.getClass(), Pet.class);
+		assertEquals(Pet.class, returnValue.getClass());
 	}
 
 	@Test
@@ -188,7 +187,7 @@ class PetServiceTest {
 		}catch (Exception e) {
 			fail("FAILED");
 		}
-		assertEquals(returnValue, pet);
+		assertEquals(pet, returnValue);
 	}
 
 	@Test
