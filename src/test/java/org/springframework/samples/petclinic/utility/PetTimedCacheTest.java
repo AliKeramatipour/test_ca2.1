@@ -6,135 +6,107 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.*;
+import org.mockito.invocation.Invocation;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetRepository;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
-import static org.aspectj.bridge.MessageUtil.fail;
 import static org.mockito.ArgumentMatchers.*;
 
 @RunWith(MockitoJUnitRunner.class)
 class PetTimedCacheTest {
+	//Classical
+	//در این تست از روش classical برای object هایی مثل pet و ... استفاده می‌کنیم
+	//در عین حال به ازای petRepository از mock آن استفاده میکنیم. این DOC از برنامه ما خارج است و استفاده از دیتابیس واقعی ما تاثیرات جانبی بر دیگر اطلاعات دارد.
+	//همچنین دیتابیس ها مشکلات جانبی همانند زمان‌گیر بودن و نیاز به ستاپ و ... نیز دارند.
 
 	@Mock private PetRepository petRepository;
-	@Mock private Pet pet;
-	@Mock private Pet anotherPet;
-	private ConcurrentHashMap timeMap = new ConcurrentHashMap();
-//	private ConcurrentHashMap realActualMap = new ConcurrentHashMap();
-//	@Mock private Date date;
-	@Mock private ConcurrentHashMap actualMap;
-	@Mock private PetTimedCache.CleanerThread cleanerThread;
-	private long expiryInMillis = 10000L;
+	private long expiryInMillis = 100;
+	int MISS = 1, HIT = 0;
+	int ExpectedInvokeNumber = 0;
+	private PetTimedCache petTimedCache;
 
-
-
-	public static void setField(String fieldName, Object value, Object testObj) throws IllegalAccessException, NoSuchFieldException, java.lang.NoSuchFieldException {
-		Field field = testObj.getClass().getDeclaredField(fieldName);
-		field.setAccessible(true);
-		field.set(testObj, value);
-	}
-
+	Pet[] pet = new Pet[2];
 
 	@BeforeEach
 	public void setup() {
+		ExpectedInvokeNumber = 0;
 		MockitoAnnotations.initMocks(this);
+		petTimedCache = new PetTimedCache(expiryInMillis, petRepository);
+		for (int i = 0 ; i < 2 ; i++)
+		{
+			pet[i] = new Pet();
+			pet[i].setId(i);
+			petTimedCache.save(pet[i]);
+			//setting up our database mock
+			Mockito.when(petRepository.findById(i)).thenReturn(pet[i]);
+		}
 	}
 
 	@Test
-	public void getTestValidInputEmptyActualMapNullPet() throws NoSuchFieldException, IllegalAccessException, java.lang.NoSuchFieldException {
-		PetTimedCache petTimedCache = new PetTimedCache(petRepository);
-		setField("actualMap", actualMap, petTimedCache);
+	public void testCacheOneItem() throws InterruptedException {
 
-		Mockito.when(petRepository.findById(anyInt())).thenReturn(null);
-		Mockito.when(actualMap.containsKey(anyInt())).thenReturn(false);
+		petTimedCache.get(0);
+		//cache must MISS
+		ExpectedInvokeNumber += MISS;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
 
-		petTimedCache.get(anyInt());
+		petTimedCache.get(0);
+		//cache must HIT
+		ExpectedInvokeNumber += HIT;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
 
-		Mockito.verify(actualMap, Mockito.times(1)).containsKey(anyInt());
-		Mockito.verify(petRepository, Mockito.times(1)).findById(anyInt());
-		Mockito.verify(actualMap, Mockito.times(0)).put(anyInt(), any(Pet.class));
-	}
-
-	@Test
-	public void getTestValidInputEmptyActualMapNotNullPet() throws NoSuchFieldException, IllegalAccessException, java.lang.NoSuchFieldException {
-		PetTimedCache petTimedCache = new PetTimedCache(petRepository);
-		setField("actualMap", actualMap, petTimedCache);
-
-		Mockito.when(petRepository.findById(anyInt())).thenReturn(pet);
-		Mockito.when(actualMap.containsKey(anyInt())).thenReturn(false);
-
-		petTimedCache.get(anyInt());
-
-		Mockito.verify(actualMap, Mockito.times(1)).containsKey(anyInt());
-		Mockito.verify(petRepository, Mockito.times(1)).findById(anyInt());
-		Mockito.verify(actualMap, Mockito.times(1)).put(anyInt(), any(Pet.class));	//What do you think about it?
-	}
-
-	@Test
-	public void getTestValidInputNotEmptyActualMap() throws NoSuchFieldException, IllegalAccessException, java.lang.NoSuchFieldException {
-		PetTimedCache petTimedCache = new PetTimedCache(petRepository);
-		setField("actualMap", actualMap, petTimedCache);
-
-		Mockito.when(actualMap.get(anyInt())).thenReturn(pet);
-		Mockito.when(actualMap.containsKey(anyInt())).thenReturn(true);
-
-		petTimedCache.get(anyInt());
-
-		Mockito.verify(actualMap, Mockito.times(1)).containsKey(anyInt());
-		Mockito.verify(actualMap, Mockito.times(1)).get(anyInt());
+		TimeUnit.MILLISECONDS.sleep(expiryInMillis * 2);
+		petTimedCache.get(0);
+		//cache must MISS
+		ExpectedInvokeNumber += MISS;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
 	}
 
 
-	@Test
-	public void runTestFirstConstructor() throws NoSuchFieldException, IllegalAccessException, java.lang.NoSuchFieldException, InterruptedException {
-		PetTimedCache petTimedCache = new PetTimedCache(petRepository);
-		Mockito.when(actualMap.remove(anyInt())).thenReturn(pet).thenReturn(anotherPet);
-		Mockito.doNothing().when(cleanerThread).run();
-		setField("timeMap", timeMap, petTimedCache);
-		setField("actualMap", actualMap, petTimedCache);
-		timeMap.put(0, new Date().getTime());
-		timeMap.put(1, new Date().getTime()-2000);
-//		Mockito.when(timeMap.keySet().toArray()[0]).thenReturn(0).thenReturn(1).thenReturn(2).thenReturn(3);
-
-		petTimedCache.initialize();
-		Thread t = new Thread();
-		t.sleep((expiryInMillis/2)+1);
-
-		Mockito.verify(actualMap, Mockito.times(1)).remove(anyInt());
-		ArgumentCaptor<Integer> key = ArgumentCaptor.forClass(Integer.class);
-		Mockito.verify(actualMap).remove(key.capture());
-		Assert.assertEquals(java.util.Optional.of(1), java.util.Optional.ofNullable(key.getValue()));
-	}
 
 	@Test
-	public void runTestSecondConstructor() throws NoSuchFieldException, IllegalAccessException, java.lang.NoSuchFieldException, InterruptedException {
-		expiryInMillis = 5000L;
-		PetTimedCache petTimedCache = new PetTimedCache(expiryInMillis, petRepository);
-		Mockito.when(actualMap.remove(anyInt())).thenReturn(pet).thenReturn(anotherPet);
-		Mockito.doNothing().when(cleanerThread).run();
-		setField("timeMap", timeMap, petTimedCache);
-		setField("actualMap", actualMap, petTimedCache);
-		timeMap.put(0, new Date().getTime()-500);
-		timeMap.put(1, new Date().getTime()-1000);
+	public void testCacheTwoItems() throws InterruptedException {
+		petTimedCache.get(0);
+		//cache must MISS
+		ExpectedInvokeNumber += MISS;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
 
-		petTimedCache.initialize();
-		Thread t = new Thread();
-		t.sleep(12000L);
+		petTimedCache.get(1);
+		//cache must MISS
+		ExpectedInvokeNumber += MISS;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
 
-		ArgumentCaptor<Integer> key = ArgumentCaptor.forClass(Integer.class);
-		Mockito.verify(actualMap, Mockito.times(2)).remove(key.capture());
-		//
-		System.out.println("key.getValue()");
-		System.out.println(key.getValue());
-		Assert.assertEquals(java.util.Optional.of(1), java.util.Optional.ofNullable(key.getValue()));
-//		ArgumentCaptor<Integer> key1 = ArgumentCaptor.forClass(Integer.class);
-//		Mockito.verify(actualMap).remove(key1.capture());
-		System.out.println(key.getValue());
-		Assert.assertEquals(java.util.Optional.of(0), java.util.Optional.ofNullable(key.getValue()));
+		petTimedCache.get(0);
+		//cache must HIT
+		ExpectedInvokeNumber += HIT;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
+
+		TimeUnit.MILLISECONDS.sleep(expiryInMillis/5);
+		petTimedCache.get(0);
+		//cache must HIT
+		ExpectedInvokeNumber += HIT;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
+
+
+		TimeUnit.MILLISECONDS.sleep(expiryInMillis * 2);
+		petTimedCache.get(0);
+		//cache must MISS
+		ExpectedInvokeNumber += MISS;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
+
+		petTimedCache.get(1);
+		//cache must MISS
+		ExpectedInvokeNumber += MISS;
+		Mockito.verify(petRepository, Mockito.times(ExpectedInvokeNumber)).findById(anyInt());
 	}
 
 }
