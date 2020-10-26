@@ -38,66 +38,24 @@ class PetServiceTest {
 		MockitoAnnotations.initMocks(this);
 	}
 
-	//---------------------------------- Null Inputs
+	//---------------------------------- findOwner
 
 	@Test
-	//Behavior verification
-	public void testNewPetNullInputBehavior() {
+	//Behavior verification - should throw an exception
+	public void testFindOwnerNullBehaviour(){
+		Integer x = null;
 		try {
-			petService.newPet(null);
-			fail("null input was accepted in newPet");
+			petService.findOwner(x);
+			fail("testFindOwnerNullBehavior failed");
 		}catch (Exception e) {
-			Mockito.verify(criticalLogger, Mockito.times(0)).info(anyString(),anyInt());
 		}
 	}
-
-	@Test
-	//State verification
-	public void testNewPetNullInputState() {
-		Pet returnValue = null;
-		try {
-			returnValue = petService.newPet(null);
-			fail("null input was accepted in newPet");
-		}catch (Exception e) {
-			//No value should be returned since Exception is caught mid-function
-			assertEquals(null, returnValue);
-		}
-	}
-
-	@Test
-	//Behavior verification
-	public void testSavePetNullPetBehavior() {
-		try {
-			petService.savePet(null, owner);
-			fail("null input was accepted in savePet");
-		}catch (Exception e) {
-			Mockito.verify(criticalLogger, Mockito.times(0)).info(anyString(),anyInt());
-			Mockito.verify(owner, Mockito.times(0)).addPet(any(Pet.class));
-			Mockito.verify(pets, Mockito.times(0)).save(any(Pet.class));
-		}
-	}
-
-	@Test
-	//Behavior verification
-	public void testSavePetNullOwnerBehavior() {
-		Mockito.when(pet.getId()).thenReturn(10);
-		try {
-			petService.savePet(pet, null);
-			fail("null input was accepted in savePet");
-		}catch (Exception e) {
-			Mockito.verify(criticalLogger, Mockito.times(1)).info(anyString(), anyInt());
-			Mockito.verify(pet, Mockito.times(1)).getId();
-			Mockito.verify(pets, Mockito.times(0)).save(any(Pet.class));
-		}
-	}
-
-	//---------------------------------- Valid Inputs
 
 	@Test
 	//Behavior verification
 	public void testFindOwnerValidInputBehavior() {
 		try {
-			Owner x = petService.findOwner(1);
+			petService.findOwner(1);
 		}catch (Exception e) {
 			System.out.println(e);
 			fail("testFindOwnerValidInputBehavior failed");
@@ -124,6 +82,31 @@ class PetServiceTest {
 		assertEquals(owner, returnValue);
 	}
 
+	//---------------------------------- newPet
+	@Test
+	//Behavior verification
+	public void testNewPetNullInputBehavior() {
+		try {
+			petService.newPet(null);
+			fail("null input was accepted in newPet");
+		}catch (Exception e) {
+			Mockito.verify(criticalLogger, Mockito.times(0)).info(anyString(),anyInt());
+		}
+	}
+
+	@Test
+	//State verification
+	public void testNewPetNullInputState() {
+		Pet returnValue = null;
+		try {
+			returnValue = petService.newPet(null);
+			fail("null input was accepted in newPet");
+		}catch (Exception e) {
+			//No value should be returned since Exception is caught mid-function
+			assertEquals(null, returnValue);
+		}
+	}
+
 	@Test
 	//Behavior verification
 	public void testNewPetValidInputBehavior() {
@@ -133,11 +116,12 @@ class PetServiceTest {
 		}catch (Exception e) {
 			fail("testNewPetValidInputBehavior failed");
 		}
-
 		Mockito.verify(criticalLogger, Mockito.times(1)).info("add pet for owner {}", 2);
 		Mockito.verify(owner, Mockito.times(1)).getId();
 		Mockito.verify(owner, Mockito.times(1)).addPet(any(Pet.class));
-		//
+		//Bug was found, new pet is not saved
+		Mockito.verify(pets, Mockito.times(1)).save(any(Pet.class));
+
 		ArgumentCaptor<Pet> p = ArgumentCaptor.forClass(Pet.class);
 		Mockito.verify(owner).addPet(p.capture());
 		assertEquals(Pet.class, p.getValue().getClass());
@@ -159,6 +143,24 @@ class PetServiceTest {
 		assertEquals(0, realOwner.getPets().size());
 		assertNotNull(returnValue);
 		assertEquals(Pet.class, returnValue.getClass());
+	}
+
+
+	//---------------------------------- findPet
+	@Test
+	//Behavior verification
+	public void testFindPetNullInputBehavior() {
+		try {
+			petService.findPet(3);
+		}catch (Exception e) {
+			fail("FAILED");
+		}
+		Mockito.verify(criticalLogger, Mockito.times(1)).info("find pet by id {}", 3);
+		Mockito.verify(pets, Mockito.times(1)).get(anyInt());
+
+		ArgumentCaptor<Integer> petId = ArgumentCaptor.forClass(Integer.class);
+		Mockito.verify(pets).get(petId.capture());
+		assertEquals((Integer)3, petId.getValue());
 	}
 
 	@Test
@@ -188,6 +190,36 @@ class PetServiceTest {
 			fail("FAILED");
 		}
 		assertEquals(pet, returnValue);
+	}
+
+
+	//---------------------------------- savePet
+
+	@Test
+	//Behavior verification
+	public void testSavePetNullPetBehavior() {
+		try {
+			petService.savePet(null, owner);
+			fail("null input was accepted in savePet");
+		}catch (Exception e) {
+			Mockito.verify(criticalLogger, Mockito.times(0)).info(anyString(),anyInt());
+			Mockito.verify(owner, Mockito.times(0)).addPet(any(Pet.class));
+			Mockito.verify(pets, Mockito.times(0)).save(any(Pet.class));
+		}
+	}
+
+	@Test
+	//Behavior verification
+	public void testSavePetNullOwnerBehavior() {
+		Mockito.when(pet.getId()).thenReturn(10);
+		try {
+			petService.savePet(pet, null);
+			fail("null input was accepted in savePet");
+		}catch (Exception e) {
+			Mockito.verify(criticalLogger, Mockito.times(1)).info(anyString(), anyInt());
+			Mockito.verify(pet, Mockito.times(1)).getId();
+			Mockito.verify(pets, Mockito.times(0)).save(any(Pet.class));
+		}
 	}
 
 	@Test
