@@ -4,14 +4,13 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.samples.petclinic.utility.PetTimedCache;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PetService {
 
 	private final PetTimedCache pets;
-
 	private final OwnerRepository owners;
-
 	private final Logger log;
 
 	@Autowired
@@ -46,5 +45,4 @@ public class PetService {
 		owner.addPet(pet);
 		this.pets.save(pet);
 	}
-
 }

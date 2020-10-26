@@ -125,6 +125,8 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+
+
 <!--    <dependency>-->
 <!--      <groupId>org.mockito</groupId>-->
 <!--      <artifactId>mockito-all</artifactId>-->
@@ -137,6 +139,11 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-devtools</artifactId>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
