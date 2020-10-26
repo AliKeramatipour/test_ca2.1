@@ -8,7 +8,6 @@ import java.util.concurrent.Callable;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-// todo pass these tests
 class SimpleDITest {
 
 	@Test
