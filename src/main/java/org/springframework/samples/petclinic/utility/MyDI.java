@@ -22,6 +22,8 @@ public class MyDI extends SimpleDI {
 	public Object getInstanceOf(Class<?> requiredType) throws Exception {
 		if (byInstance.get(requiredType) != null)
 			return byInstance.get(requiredType);
-		return byConstructor.get(requiredType).call();
+		if (byConstructor.get(requiredType) != null)
+			return byConstructor.get(requiredType).call();
+		return null;
 	}
 }
