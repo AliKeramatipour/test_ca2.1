@@ -1,22 +1,13 @@
 package org.springframework.samples.petclinic.utility;
 
-import net.minidev.asm.ex.NoSuchFieldException;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.*;
-import org.mockito.invocation.Invocation;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetRepository;
 
-import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.Date;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.ArgumentMatchers.*;
